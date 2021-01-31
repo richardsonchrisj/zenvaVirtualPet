@@ -31,10 +31,21 @@ gameScene.preload = function () {
 gameScene.create = function () {
 
   //game background
-  let bg = this.add.sprite(0, 0, 'backyard');
+  let bg = this.add.sprite(0, 0, 'backyard').setInteractive();;
   bg.setOrigin(0, 0);
 
-  this.pet = this.add.sprite(100, 200, 'pet');
+  this.pet = this.add.sprite(100, 200, 'pet').setInteractive();
+
+  //make pet draggable
+  this.input.setDraggable(this.pet);
+
+  //follow pointer
+  this.input.on('drag', function(pointer, gameObject, dragX, dragY){
+    //make sprite located at coordinates
+    gameObject.x = dragX;
+    gameObject.y = dragY;
+
+  })
 
   this.createUi();
 
@@ -44,9 +55,29 @@ gameScene.create = function () {
 gameScene.createUi = function () {
   //buttons
   this.appleBtn = this.add.sprite(72, 570, 'apple').setInteractive();
+  this.appleBtn.customStats = {health: 20, fun: 0};
+  this.appleBtn.on('pointerdown', this.pickItem);
+
   this.candyBtn = this.add.sprite(144, 570, 'candy').setInteractive();
+  this.candyBtn.customStats = {health: -10, fun: 10};
+  this.candyBtn.on('pointerdown', this.pickItem);
+
   this.toyBtn = this.add.sprite(216, 570, 'toy').setInteractive();
+  this.toyBtn.customStats = {health: 0, fun: 20};
+  this.toyBtn.on('pointerdown', this.pickItem);
+
   this.rotateBtn = this.add.sprite(288, 570, 'rotate').setInteractive();
+  this.rotateBtn.on('pointerdown', this.rotatePet);
+}
+
+// rotate pet
+gameScene.rotatePet = function(){
+  console.log('we are rotating the pet!');
+}
+
+// pick item
+gameScene.pickItem = function(){
+  console.log('we are picking an item!')
 }
 
 // our game's configuration
