@@ -5,7 +5,10 @@ let gameScene = new Phaser.Scene('Game');
 gameScene.init = function () {
 
   //game stats
-
+  this.stats = {
+    health: 100,
+    fun: 100
+  };
 };
 
 // load asset files for our game
@@ -34,6 +37,8 @@ gameScene.create = function () {
   let bg = this.add.sprite(0, 0, 'backyard').setInteractive();;
   bg.setOrigin(0, 0);
 
+  //event listener for background
+  bg.on('pointerdown', this.placeItem, this)
   this.pet = this.add.sprite(100, 200, 'pet').setInteractive();
 
   //make pet draggable
@@ -44,7 +49,6 @@ gameScene.create = function () {
     //make sprite located at coordinates
     gameObject.x = dragX;
     gameObject.y = dragY;
-
   })
 
   this.createUi();
@@ -125,8 +129,7 @@ gameScene.pickItem = function () {
 
   //change transparancy
   this.alpha = 0.5;
-
-  console.log('we are picking an item!' + this.texture.key)
+  console.log('we are picking ' + this.texture.key)
 };
 
 //set ui to "ready"
@@ -141,8 +144,29 @@ gameScene.uiReady = function () {
 
   //scene must be unblocked
   this.uiBlocked = false;
-
 };
+
+// place new item on the game
+gameScene.placeItem = function (pointer, localX, localY) {
+  //check that an item was selected
+  if (!this.selectedItem) return;
+
+  // create a new item in the position the player clicked/tapped
+  let newItem = this.add.sprite(localX, localY, this.selectedItem.texture.key);
+
+  // pet stats
+  for (stat in this.selectedItem.customStats) {
+    if (this.selectedItem.customStats.hasOwnProperty(stat)) {
+      this.stats[stat] += this.selectedItem.customStats[stat];
+    }
+  }
+
+  console.log(this.stats);
+
+  // clear UI
+  this.uiReady();
+};
+
 
 // our game's configuration
 let config = {
