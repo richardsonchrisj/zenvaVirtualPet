@@ -44,6 +44,17 @@ gameScene.create = function () {
   //make pet draggable
   this.input.setDraggable(this.pet);
 
+  // animation
+  this.anims.create({
+    key: 'funnyfaces',
+    frames: this.anims.generateFrameNames('pet', {
+      frames: [1, 2, 3]
+    }),
+    frameRate: 7,
+    yoyo: true,
+    repeat: 0,
+  });
+
   //follow pointer
   this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
     //make sprite located at coordinates
@@ -167,17 +178,49 @@ gameScene.placeItem = function (pointer, localX, localY) {
   //check that an item was selected
   if (!this.selectedItem) return;
 
+  // ui must be unblocked
+  if (this.uiBlocked) return;
+
   // create a new item in the position the player clicked/tapped
   let newItem = this.add.sprite(localX, localY, this.selectedItem.texture.key);
 
-  // pet stats
-  for (stat in this.selectedItem.customStats) {
-    if (this.selectedItem.customStats.hasOwnProperty(stat)) {
-      this.stats[stat] += this.selectedItem.customStats[stat];
-    }
-  }
 
-  console.log(this.stats);
+
+  // block UI
+  this.uiBlocked = true;
+
+  // pet movement (tween)
+  let petTween = this.tweens.add({
+    targets: this.pet,
+    duration: 500,
+    x: newItem.x,
+    y: newItem.y,
+    paused: false,
+    callbackScope: this,
+    onComplete: function (tween, sprites) {
+
+      // destroy the item
+      newItem.destroy();
+
+      // event listener for when spritesheet animation ends
+      this.pet.on('animationcomplete', function(){
+            // clear UI
+      this.uiReady();
+      }, this);
+
+
+      // play spritesheet animation
+      this.pet.play('funnyfaces');
+
+      // // pet stats
+      // for (stat in this.selectedItem.customStats) {
+      //   if (this.selectedItem.customStats.hasOwnProperty(stat)) {
+      //     this.stats[stat] += this.selectedItem.customStats[stat];
+      //   }
+      // }
+  
+    }
+  });
 
   // clear UI
   this.uiReady();
