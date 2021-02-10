@@ -64,6 +64,9 @@ gameScene.create = function () {
 
   this.createUi();
 
+  // show stats to the user
+  this.createHud();
+  this.refreshHud();
 };
 
 // create ui
@@ -136,10 +139,11 @@ gameScene.rotatePet = function () {
 
       //set UI to ready
       this.scene.uiReady();
+
+      //refresh HUD
+      this.scene.refreshHud();
     }
   });
-
-  console.log('we are rotating the pet!');
 };
 
 // pick item
@@ -173,22 +177,21 @@ gameScene.uiReady = function () {
   this.uiBlocked = false;
 };
 
+ 
 // place new item on the game
-gameScene.placeItem = function (pointer, localX, localY) {
-  //check that an item was selected
+gameScene.placeItem = function(pointer, localX, localY) {
+  // check that an item was selected
   if (!this.selectedItem) return;
-
+ 
   // ui must be unblocked
   if (this.uiBlocked) return;
-
+ 
   // create a new item in the position the player clicked/tapped
   let newItem = this.add.sprite(localX, localY, this.selectedItem.texture.key);
-
-
-
+ 
   // block UI
   this.uiBlocked = true;
-
+ 
   // pet movement (tween)
   let petTween = this.tweens.add({
     targets: this.pet,
@@ -197,36 +200,63 @@ gameScene.placeItem = function (pointer, localX, localY) {
     y: newItem.y,
     paused: false,
     callbackScope: this,
-    onComplete: function (tween, sprites) {
-
+    onComplete: function(tween, sprites) {
+ 
       // destroy the item
       newItem.destroy();
-
+ 
       // event listener for when spritesheet animation ends
-      this.pet.on('animationcomplete', function(){
-            // clear UI
-      this.uiReady();
+      this.pet.on('animationcomplete', function() {
+ 
+        // set pet back to neutral face
+        this.pet.setFrame(0);
+ 
+        // clear UI
+        this.uiReady();
+ 
+        // refresh HUD
+        this.refreshHud();
       }, this);
-
-
+ 
       // play spritesheet animation
       this.pet.play('funnyfaces');
-
-      // // pet stats
-      // for (stat in this.selectedItem.customStats) {
-      //   if (this.selectedItem.customStats.hasOwnProperty(stat)) {
-      //     this.stats[stat] += this.selectedItem.customStats[stat];
-      //   }
-      // }
-  
+ 
+      // pet stats
+      // this.stats.health += this.selectedItem.customStats.health;
+      // this.stats.fun += this.selectedItem.customStats.fun;
+ 
+      for (stat in this.selectedItem.customStats) {
+        if (this.selectedItem.customStats.hasOwnProperty(stat)) {
+          this.stats[stat] += this.selectedItem.customStats[stat];
+        }
+      }
+ 
+ 
     }
   });
-
-  // clear UI
-  this.uiReady();
 };
-
-
+ 
+// create the text elements that will show the stats
+gameScene.createHud = function() {
+  // health stat
+  this.healthText = this.add.text(20, 20, 'Health: ', {
+    font: '24px Arial',
+    fill: '#ffffff'
+  });
+ 
+  // fun stat
+  this.funText = this.add.text(170, 20, 'Fun: ', {
+    font: '24px Arial',
+    fill: '#ffffff'
+  });
+};
+ 
+// show the current value of health and fun
+gameScene.refreshHud = function(){
+  this.healthText.setText('Health: ' + this.stats.health);
+  this.funText.setText('Fun: ' + this.stats.fun);
+};
+ 
 // our game's configuration
 let config = {
   type: Phaser.AUTO,
@@ -235,8 +265,8 @@ let config = {
   scene: gameScene,
   title: 'Virtual Pet',
   pixelArt: false,
-  backgroundColor: '000'
+  backgroundColor: 'ffffff'
 };
-
+ 
 // create the game, and pass it the configuration
 let game = new Phaser.Game(config);
