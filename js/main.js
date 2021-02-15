@@ -9,6 +9,13 @@ gameScene.init = function () {
     health: 100,
     fun: 100
   };
+
+  // decay parameters
+  this.decayRates = {
+    health: -5,
+    fun: -2,
+  }
+
 };
 
 // load asset files for our game
@@ -52,26 +59,38 @@ gameScene.create = function () {
     }),
     frameRate: 7,
     yoyo: true,
-    repeat: 0,
+    repeat: 0 // to repeat forever: -1
   });
 
-  //follow pointer
+  // follow pointer (mouse/finger) when dragging
   this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
-    //make sprite located at coordinates
+    // make sprite be located at the coordinates of the dragging
     gameObject.x = dragX;
     gameObject.y = dragY;
-  })
+  });
 
+  // create ui
   this.createUi();
 
   // show stats to the user
   this.createHud();
   this.refreshHud();
+
+  // decay of health and fun over time
+  this.timedEventStats = this.time.addEvent({
+    delay: 1000,
+    repeat: -1, // it will repeat forever
+    callback: function () {
+      // update stats
+      this.updateStats(this.decayRates);
+    },
+    callbackScope: this
+  });
 };
 
 // create ui
 gameScene.createUi = function () {
-  //buttons
+  // buttons
   this.appleBtn = this.add.sprite(72, 570, 'apple').setInteractive();
   this.appleBtn.customStats = {
     health: 20,
@@ -89,7 +108,7 @@ gameScene.createUi = function () {
   this.toyBtn = this.add.sprite(216, 570, 'toy').setInteractive();
   this.toyBtn.customStats = {
     health: 0,
-    fun: 20
+    fun: 15
   };
   this.toyBtn.on('pointerdown', this.pickItem);
 
@@ -99,10 +118,10 @@ gameScene.createUi = function () {
   };
   this.rotateBtn.on('pointerdown', this.rotatePet);
 
-  //array with all buttons
+  // array with all buttons
   this.buttons = [this.appleBtn, this.candyBtn, this.toyBtn, this.rotateBtn];
 
-  //ui is not blocked
+  // ui is not blocked
   this.uiBlocked = false;
 
   // refresh ui
@@ -112,36 +131,34 @@ gameScene.createUi = function () {
 // rotate pet
 gameScene.rotatePet = function () {
 
-  //the ui can't be blocked in order to rotate
+  // the ui can't be blocked in order to rotate
   if (this.scene.uiBlocked) return;
 
-  //make sure the ui is ready
+  // make sure the ui is ready
   this.scene.uiReady();
 
-  //block the ui
+  // block the ui
   this.scene.uiBlocked = true;
 
+  // dim the rotate icon
   this.alpha = 0.5;
 
   let scene = this.scene;
 
-
-  //rotation tween
+  // rotation tween
   let rotateTween = this.scene.tweens.add({
     targets: this.scene.pet,
     duration: 600,
-    angle: 360,
+    angle: 720,
     pause: false,
     callbackScope: this,
     onComplete: function (tween, sprites) {
-      //increase fun
-      this.scene.stats.fun += this.customStats.fun;
 
-      //set UI to ready
+      // update stats
+      this.scene.updateStats(this.customStats);
+
+      // set UI to ready
       this.scene.uiReady();
-
-      //refresh HUD
-      this.scene.refreshHud();
     }
   });
 };
@@ -149,23 +166,24 @@ gameScene.rotatePet = function () {
 // pick item
 gameScene.pickItem = function () {
 
-  //the ui can't be blocked in order to select an item
+  // the ui can't be blocked in order to select an item
   if (this.scene.uiBlocked) return;
 
-  //make sure the ui is ready
+  // make sure the ui is ready
   this.scene.uiReady();
 
-  //select item
+  // select item
   this.scene.selectedItem = this;
 
-  //change transparancy
+  // change transparency
   this.alpha = 0.5;
-  console.log('we are picking ' + this.texture.key)
+
+  console.log('we are picking ' + this.texture.key);
 };
 
-//set ui to "ready"
+// set ui to "ready"
 gameScene.uiReady = function () {
-  //nothing is being selected
+  // nothing is being selected
   this.selectedItem = null;
 
   // set all buttons to alpha 1 (no transparency)
@@ -173,25 +191,24 @@ gameScene.uiReady = function () {
     this.buttons[i].alpha = 1;
   }
 
-  //scene must be unblocked
+  // scene must be unblocked
   this.uiBlocked = false;
 };
 
- 
 // place new item on the game
-gameScene.placeItem = function(pointer, localX, localY) {
+gameScene.placeItem = function (pointer, localX, localY) {
   // check that an item was selected
   if (!this.selectedItem) return;
- 
+
   // ui must be unblocked
   if (this.uiBlocked) return;
- 
+
   // create a new item in the position the player clicked/tapped
   let newItem = this.add.sprite(localX, localY, this.selectedItem.texture.key);
- 
+
   // block UI
   this.uiBlocked = true;
- 
+
   // pet movement (tween)
   let petTween = this.tweens.add({
     targets: this.pet,
@@ -200,63 +217,84 @@ gameScene.placeItem = function(pointer, localX, localY) {
     y: newItem.y,
     paused: false,
     callbackScope: this,
-    onComplete: function(tween, sprites) {
- 
+    onComplete: function (tween, sprites) {
+
       // destroy the item
       newItem.destroy();
- 
+
       // event listener for when spritesheet animation ends
-      this.pet.on('animationcomplete', function() {
- 
+      this.pet.on('animationcomplete', function () {
+
         // set pet back to neutral face
         this.pet.setFrame(0);
- 
+
         // clear UI
         this.uiReady();
- 
-        // refresh HUD
-        this.refreshHud();
       }, this);
- 
+
       // play spritesheet animation
       this.pet.play('funnyfaces');
- 
-      // pet stats
-      // this.stats.health += this.selectedItem.customStats.health;
-      // this.stats.fun += this.selectedItem.customStats.fun;
- 
-      for (stat in this.selectedItem.customStats) {
-        if (this.selectedItem.customStats.hasOwnProperty(stat)) {
-          this.stats[stat] += this.selectedItem.customStats[stat];
-        }
-      }
- 
- 
+
+      // update stats
+      this.updateStats(this.selectedItem.customStats);
     }
   });
 };
- 
+
 // create the text elements that will show the stats
-gameScene.createHud = function() {
+gameScene.createHud = function () {
   // health stat
   this.healthText = this.add.text(20, 20, 'Health: ', {
     font: '24px Arial',
     fill: '#ffffff'
   });
- 
+
   // fun stat
   this.funText = this.add.text(170, 20, 'Fun: ', {
     font: '24px Arial',
     fill: '#ffffff'
   });
 };
- 
+
 // show the current value of health and fun
-gameScene.refreshHud = function(){
+gameScene.refreshHud = function () {
   this.healthText.setText('Health: ' + this.stats.health);
   this.funText.setText('Fun: ' + this.stats.fun);
 };
- 
+
+// stat updater
+gameScene.updateStats = function (statDiff) {
+  // manually update each stat
+  // this.stats.health += statDiff.health;
+  // this.stats.fun += statDiff.fun;
+
+  // flag to see if it's game over
+  let isGameOver = false;
+
+  // more flexible
+  for (stat in statDiff) {
+    if (statDiff.hasOwnProperty(stat)) {
+      this.stats[stat] += statDiff[stat];
+
+      // stats can't be less than zero
+      if (this.stats[stat] < 0) {
+        isGameOver = true;
+        this.stats[stat] = 0;
+      }
+    }
+  }
+
+  // refresh HUD
+  this.refreshHud();
+
+  // check to see if the game ended
+  if (isGameOver) this.gameOver();
+};
+
+gameScene.gameOver = function () {
+  console.log('game over');
+};
+
 // our game's configuration
 let config = {
   type: Phaser.AUTO,
@@ -267,6 +305,6 @@ let config = {
   pixelArt: false,
   backgroundColor: 'ffffff'
 };
- 
+
 // create the game, and pass it the configuration
 let game = new Phaser.Game(config);
