@@ -14,12 +14,9 @@ loadingScene.preload = function () {
   bgBar.fillStyle(0xF5F5F5, 1);
   bgBar.fillRect(0, 0, barW, barH);
 
-  // progress bar background
+  // progress bar 
   let progressBar = this.add.graphics();
-  let progressBar = 150;
-  let progressBar = 20;
   progressBar.setPosition(this.sys.game.config.width / 2 - barW / 2, this.sys.game.config.height / 2 - barH / 2);
-
 
   //listen to the 'progress' event
   this.load.on('progress', function (value) {
@@ -30,7 +27,7 @@ loadingScene.preload = function () {
 
     //draw rectangle
     progressBar.fillRect(0, 0, value * barW, barH);
-  }, this)
+  }, this);
 
   // load assets
   this.load.image('backyard', 'assets/images/backyard.png');
